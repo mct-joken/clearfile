@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "OneDrive React Extension",
+  "version": "1.0.0",
+  "description": "React-based browser extension for OneDrive",
+  "permissions": [
+    "storage",
+    "identity"
+  ],
+  "host_permissions": [
+    "https://graph.microsoft.com/*",
+    "https://onedrive.live.com/*",
+    "https://*.sharepoint.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://onedrive.live.com/*",
+        "https://*.sharepoint.com/*"
+      ],
+      "js": [
+        "src/content.tsx"
+      ]
+    }
+  ]
+}
