@@ -9,7 +9,7 @@ import "./App.css";
 
 // アプリの起動時に一度だけ実行
 Providers.globalProvider = new Msal2Provider({
-  clientId: "6c7057ca-aa6e-463d-b858-55c78248ce07",
+  clientId: import.meta.env.VITE_CLIENT_ID as string,
   scopes: ["Files.Read", "Files.Read.All", "User.Read"], // OneDriveを読む許可をもらう
 });
 
