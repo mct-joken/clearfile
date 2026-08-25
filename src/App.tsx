@@ -169,12 +169,7 @@ const handleBackClick = () => {
               <button onClick={() => addTag(selectedFile.id, "重要")} style={{ marginTop: "5px", marginRight: "5px" }}>+ 重要</button>
               <button onClick={() => addTag(selectedFile.id, "確認済み")} style={{ marginTop: "5px" }}>+ 確認済み</button>
             </div>
-          </div>
-        ) : (
-          <p>ファイルをクリックして「タグを編集する」を選択してください。</p>
-        )}
-      </div>
-
+          
       {/* ファイルクリック時に表示される選択ダイアログ（モーダル） */}
       {actionModalFile && (
         <div
@@ -215,7 +210,7 @@ const handleBackClick = () => {
                 }}
                 style={{ padding: "8px", cursor: "pointer", backgroundColor: "#0078d4", color: "#fff", border: "none", borderRadius: "4px" }}
               >
-                🔗 OneDriveで開く
+                開く
               </button>
 
               {/* 2. タグを編集する */}
@@ -226,7 +221,7 @@ const handleBackClick = () => {
                 }}
                 style={{ padding: "8px", cursor: "pointer", backgroundColor: "#28a745", color: "#fff", border: "none", borderRadius: "4px" }}
               >
-                🏷️ タグを編集する
+                タグを編集
               </button>
 
               {/* 3. キャンセル */}
