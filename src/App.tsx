@@ -20,33 +20,35 @@ function App() {
   const [folderHistory, setFolderHistory] = useState<string[]>([]);
   const fileListRef = useRef<any>(null);
 
-  useEffect(() => {
-    const fileList = fileListRef.current;
-    if (!fileList) return;
+useEffect(() => {
+  // Document または DocumentFragment の querySelector 全体に安全パッチを当てる
+  const patchQuerySelector = (proto: any) => {
+    if (!proto || proto.__querySelectorPatched) return;
+    const original = proto.querySelector;
 
-    const originalShowChildren = fileList.showChildren?.bind(fileList);
-
-    fileList.showChildren = (fileId: string) => {
-      const itemDOM = fileList.renderRoot?.getElementById?.(
-        `file-list-item-${fileId}`,
-      );
-
-      if (itemDOM) {
-        fileList.renderChildren(fileId, itemDOM);
-        return;
-      }
-
-      if (typeof originalShowChildren === "function") {
-        originalShowChildren(fileId);
-      }
-    };
-
-    return () => {
-      if (typeof originalShowChildren === "function") {
-        fileList.showChildren = originalShowChildren;
+    proto.querySelector = function (selector: string) {
+      try {
+        return original.call(this, selector);
+      } catch (e) {
+        // #file-list-item- 系の記号入りIDでエラーが出たら CSS.escape で修復して再実行
+        if (typeof selector === "string" && selector.startsWith("#")) {
+          try {
+            const safeSelector = "#" + CSS.escape(selector.slice(1));
+            return original.call(this, safeSelector);
+          } catch {
+            // エスケープしてもダメな場合は元の例外を投げる
+          }
+        }
+        throw e;
       }
     };
-  }, [currentFolderId]);
+    proto.__querySelectorPatched = true;
+  };
+
+  // 通常のDOM（Document）と Shadow DOM（DocumentFragment）の両方に適用
+  patchQuerySelector(Document.prototype);
+  patchQuerySelector(DocumentFragment.prototype);
+}, []);
 
   // ファイルやフォルダがクリックされた時の処理
   const handleItemClick = (e: any) => {
