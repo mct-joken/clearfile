@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@microsoft/mgt-react": "^4.7.0",
+    "cors": "^2.8.6",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
