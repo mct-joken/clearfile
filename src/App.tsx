@@ -41,38 +41,39 @@ function App() {
 
       if (typeof originalShowChildren === "function") {
         originalShowChildren(fileId);
-        }
-    };
-
-useEffect(() => {
-  // Document または DocumentFragment の querySelector 全体に安全パッチを当てる
-  const patchQuerySelector = (proto: any) => {
-    if (!proto || proto.__querySelectorPatched) return;
-    const original = proto.querySelector;
-
-    proto.querySelector = function (selector: string) {
-      try {
-        return original.call(this, selector);
-      } catch (e) {
-        // #file-list-item- 系の記号入りIDでエラーが出たら CSS.escape で修復して再実行
-        if (typeof selector === "string" && selector.startsWith("#")) {
-          try {
-            const safeSelector = "#" + CSS.escape(selector.slice(1));
-            return original.call(this, safeSelector);
-          } catch {
-            // エスケープしてもダメな場合は元の例外を投げる
-          }
-        }
-        throw e;
       }
     };
-    proto.__querySelectorPatched = true;
-  };
+  }, []);
 
-  // 通常のDOM（Document）と Shadow DOM（DocumentFragment）の両方に適用
-  patchQuerySelector(Document.prototype);
-  patchQuerySelector(DocumentFragment.prototype);
-}, []);
+  useEffect(() => {
+    // Document または DocumentFragment の querySelector 全体に安全パッチを当てる
+    const patchQuerySelector = (proto: any) => {
+      if (!proto || proto.__querySelectorPatched) return;
+      const original = proto.querySelector;
+
+      proto.querySelector = function (selector: string) {
+        try {
+          return original.call(this, selector);
+        } catch (e) {
+          // #file-list-item- 系の記号入りIDでエラーが出たら CSS.escape で修復して再実行
+          if (typeof selector === "string" && selector.startsWith("#")) {
+            try {
+              const safeSelector = "#" + CSS.escape(selector.slice(1));
+              return original.call(this, safeSelector);
+            } catch {
+              // エスケープしてもダメな場合は元の例外を投げる
+            }
+          }
+          throw e;
+        }
+      };
+      proto.__querySelectorPatched = true;
+    };
+
+    // 通常のDOM（Document）と Shadow DOM（DocumentFragment）の両方に適用
+    patchQuerySelector(Document.prototype);
+    patchQuerySelector(DocumentFragment.prototype);
+  }, []);
 
   // ファイルやフォルダがクリックされた時の処理
   const handleItemClick = (e: any) => {
@@ -92,7 +93,7 @@ useEffect(() => {
   };
 
   // 「前のフォルダに戻る」ボタンの処理
-const handleBackClick = () => {
+  const handleBackClick = () => {
     if (folderHistory.length === 0) return;
     const previousFolderId = folderHistory[folderHistory.length - 1];
     setFolderHistory((prev) => prev.slice(0, -1));
@@ -155,14 +156,16 @@ const handleBackClick = () => {
       </div>
 
       {/* 右側: タグ編集パネル */}
-      <div style={{ flex: 1, borderLeft: "1px solid #ccc", paddingLeft: "20px" }}>
+      <div
+        style={{ flex: 1, borderLeft: "1px solid #ccc", paddingLeft: "20px" }}
+      >
         <h2>タグ編集パネル</h2>
         {selectedFile ? (
           <div>
             <p>
               <strong>選択中:</strong> {selectedFile.name}
             </p>
-            
+
             <div>
               <strong>現在のタグ:</strong>
               <ul style={{ paddingLeft: "20px" }}>
@@ -191,7 +194,7 @@ const handleBackClick = () => {
             <div style={{ marginTop: "15px" }}>
               <strong>タグを追加:</strong>
               <br />
-              <button 
+              <button
                 onClick={() => addTag(selectedFile.id, "重要")}
                 style={{ marginTop: "5px", marginRight: "5px" }}
               >
@@ -206,7 +209,8 @@ const handleBackClick = () => {
             </div>
           </div>
         ) : null}
-          
+      </div>
+
       {/* ファイルクリック時に表示される選択ダイアログ（モーダル） */}
       {actionModalFile && (
         <div
@@ -237,23 +241,35 @@ const handleBackClick = () => {
             <p style={{ wordBreak: "break-all" }}>
               <strong>{actionModalFile.name}</strong>
             </p>
-            
+
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: "10px", marginTop: "20px"
+                gap: "10px",
+                marginTop: "20px",
               }}
             >
               {/* 1. OneDriveで開く */}
               <button
                 onClick={() => {
                   if (actionModalFile.webUrl) {
-                    window.open(actionModalFile.webUrl, "_blank", "noopener,noreferrer");
+                    window.open(
+                      actionModalFile.webUrl,
+                      "_blank",
+                      "noopener,noreferrer",
+                    );
                   }
                   setActionModalFile(null);
                 }}
-                style={{ padding: "8px", cursor: "pointer", backgroundColor: "#0078d4", color: "#fff", border: "none", borderRadius: "4px" }}
+                style={{
+                  padding: "8px",
+                  cursor: "pointer",
+                  backgroundColor: "#0078d4",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                }}
               >
                 開く
               </button>
@@ -264,7 +280,14 @@ const handleBackClick = () => {
                   setSelectedFile(actionModalFile);
                   setActionModalFile(null);
                 }}
-                style={{ padding: "8px", cursor: "pointer", backgroundColor: "#28a745", color: "#fff", border: "none", borderRadius: "4px" }}
+                style={{
+                  padding: "8px",
+                  cursor: "pointer",
+                  backgroundColor: "#28a745",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                }}
               >
                 タグを編集
               </button>
@@ -272,7 +295,14 @@ const handleBackClick = () => {
               {/* 3. キャンセル */}
               <button
                 onClick={() => setActionModalFile(null)}
-                style={{ padding: "5px", cursor: "pointer", backgroundColor: "#ccc", border: "none", borderRadius: "4px", marginTop: "5px" }}
+                style={{
+                  padding: "5px",
+                  cursor: "pointer",
+                  backgroundColor: "#ccc",
+                  border: "none",
+                  borderRadius: "4px",
+                  marginTop: "5px",
+                }}
               >
                 キャンセル
               </button>
