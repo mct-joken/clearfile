@@ -113,9 +113,12 @@ function App() {
     }); 
   }; 
 
+  // タグリスト
+  const tagsCounts = Object.values(localTags).flat().reduce((acc, tag) => {acc[tag] = (acc[tag] || 0) + 1; return acc;}, {} as Record<string, number>);
+
   return ( 
     <div style={{ display: "flex", gap: "20px",  }}> 
-      {/* 左側: ファイル一覧 */} 
+      {/* ヘッダー */} 
       <div style={{ flex: 2 }}> 
         <header className="header"> 
           <h1>マイ OneDrive</h1> 
@@ -123,81 +126,97 @@ function App() {
           <Login /> 
         </header> 
         <hr /> 
+      
+      {/* メインコンテンツ領域 */}
+      <div style={{ display: "flex", gap: "20px", alignItems: "flex-start",}}>
 
-        {currentFolderId !== "root" && ( 
-          <button onClick={handleBackClick} style={{ marginBottom: "10px" }}> 
-            ⬅ 前のフォルダに戻る 
-          </button> 
-        )} 
-
-        <FileList 
-          ref={fileListRef} 
-          itemId={currentFolderId} 
-          itemClick={handleItemClick} 
-        /> 
-      </div> 
-
-    {/* タグ編集選択時: タグ編集パネル */} 
-    {selectedFile && (
-      <div style={{ position: "fixed", top: "50%", left: "50%" , transform: "translate(-50%, -50%)", width: "90%", maxWidth: "400px",backgroundColor: "#fff", padding: "24px", borderRadius: "12px", boxShadow: "0 10px 25px rgba(0, 0, 0, 0.3)", zIndex: 9999, boxSizing: "border-box",}}> 
-      <div style={{ backgroundColor: "#fff", padding: "24px", borderRadius: "12px", width: "90%", maxWidth: "400px", boxShadow: "0 10px 25px rgba(0. 0. 0. 0/2)", boxSizing: "border-box",}}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2>タグ編集パネル</h2>
+        {/*  設定したタグ一覧 */}
+        <div style={{ width: "180px", border: "1px solid #ccc", borderRadius: "10px", padding: "16px" }}>
+          <h3 style={{ marginTop: 0, textAlign: "center" }}>タグ一覧</h3>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            {Object.entries(tagsCounts).map(([tag, count], idx) => (
+              <li key={idx} style={{ marginBottom: "8px" }}>
+                #{tag}({count})
+              </li>
+            ))}
+          </ul>
         </div>
 
-            <p> 
-              <strong>選択中:</strong> <br />
-              <span>{selectedFile.name}</span>
-            </p> 
+        {/* 右側: ファイル一覧 */}
+        <div style={{ flex: 1 }}>
+          {currentFolderId !== "root" && ( 
+            <button onClick={handleBackClick} style={{ marginBottom: "10px" }}> 
+              ⬅ 前のフォルダに戻る 
+            </button> 
+          )} 
 
-            <div> 
-              <strong>現在のタグ:</strong> 
-              <ul style={{ paddingLeft: "20px" }}> 
-                {(localTags[selectedFile.id] || []).map((tag, idx) => ( 
-                  <li key={idx} style={{ marginBottom: "5px" }}> 
-                    {tag}{" "} 
-                    <button 
-                      onClick={() => removeTag(selectedFile.id, tag)} 
-                      style={{ 
-                        marginLeft: "8px", 
-                        padding: "2px 6px", 
-                        cursor: "pointer", 
-                        backgroundColor: "#ff4d4f", 
-                        color: "#fff", 
-                        border: "none", 
-                        borderRadius: "3px", 
-                      }} 
-                    > 
-                      削除 
-                    </button> 
-                  </li> 
-                ))} 
-              </ul> 
-            </div>     
+          <FileList 
+            ref={fileListRef} 
+            itemId={currentFolderId} 
+            itemClick={handleItemClick} 
+          /> 
+        </div>
+      </div>
+      </div>
 
-            <div style={{ marginTop: "15px" }}> 
-              <strong>タグを追加:</strong> 
-              <br /> 
-              <button 
-                onClick={() => addTag(selectedFile.id, "重要")} 
-                style={{ marginTop: "5px", marginRight: "5px" }} 
-              > 
-                + 重要 
-              </button> 
-              <button 
-                onClick={() => addTag(selectedFile.id, "確認済み")} 
-                style={{ marginTop: "5px" }} 
-              > 
-                + 確認済み 
-              </button> 
-            </div> 
+      {/* タグ編集選択時: タグ編集パネル */} 
+      {selectedFile && (
+        <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "90%", maxWidth: "400px", backgroundColor: "#fff", padding: "24px", borderRadius: "12px", boxShadow: "0 10px 25px rgba(0, 0, 0, 0.3)", zIndex: 9999, boxSizing: "border-box" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2>タグ編集パネル</h2>
+          </div>
 
-            <button onClick={() => setSelectedFile(null)}>
-              完了
-            </button>
+          <p> 
+            <strong>選択中:</strong> <br />
+            <span>{selectedFile.name}</span>
+          </p> 
+
+          <div> 
+            <strong>現在のタグ:</strong> 
+            <ul style={{ paddingLeft: "20px" }}> 
+              {(localTags[selectedFile.id] || []).map((tag, idx) => ( 
+                <li key={idx} style={{ marginBottom: "5px" }}> 
+                  {tag}{" "} 
+                  <button 
+                    onClick={() => removeTag(selectedFile.id, tag)} 
+                    style={{ 
+                      marginLeft: "8px", 
+                      padding: "2px 6px", 
+                      cursor: "pointer", 
+                      backgroundColor: "#ff4d4f", 
+                      color: "#fff", 
+                      border: "none", 
+                      borderRadius: "3px", 
+                    }} 
+                  > 
+                    削除 
+                  </button> 
+                </li> 
+              ))} 
+            </ul> 
+          </div>     
+
+          <div style={{ marginTop: "15px" }}> 
+            <strong>タグを追加:</strong> 
+            <br /> 
+            <button 
+              onClick={() => addTag(selectedFile.id, "重要")} 
+              style={{ marginTop: "5px", marginRight: "5px" }} 
+            > 
+              + 重要 
+            </button> 
+            <button 
+              onClick={() => addTag(selectedFile.id, "確認済み")} 
+              style={{ marginTop: "5px" }} 
+            > 
+              + 確認済み 
+            </button> 
           </div> 
-          <p>ファイルを選択してタグを編集してください。</p> 
-      </div> 
+
+          <button onClick={() => setSelectedFile(null)}>
+            完了
+          </button>
+        </div> 
       )}
 
       {/* ファイルクリック時に表示される選択ダイアログ モーダル */} 
