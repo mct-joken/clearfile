@@ -13,7 +13,6 @@ Providers.globalProvider = new Msal2Provider({
   scopes: ["Files.Read", "Files.Read.All", "User.Read"], // OneDriveを読む許可をもらう
 });
 
-
 function App() {
   // 現在表示しているフォルダのIDを管理する（初期値は 'root'）
   const [currentFolderId, setCurrentFolderId] = useState<string>("root");
@@ -42,15 +41,38 @@ function App() {
 
       if (typeof originalShowChildren === "function") {
         originalShowChildren(fileId);
-      }
+        }
     };
 
-    return () => {
-      if (typeof originalShowChildren === "function") {
-        fileList.showChildren = originalShowChildren;
+useEffect(() => {
+  // Document または DocumentFragment の querySelector 全体に安全パッチを当てる
+  const patchQuerySelector = (proto: any) => {
+    if (!proto || proto.__querySelectorPatched) return;
+    const original = proto.querySelector;
+
+    proto.querySelector = function (selector: string) {
+      try {
+        return original.call(this, selector);
+      } catch (e) {
+        // #file-list-item- 系の記号入りIDでエラーが出たら CSS.escape で修復して再実行
+        if (typeof selector === "string" && selector.startsWith("#")) {
+          try {
+            const safeSelector = "#" + CSS.escape(selector.slice(1));
+            return original.call(this, safeSelector);
+          } catch {
+            // エスケープしてもダメな場合は元の例外を投げる
+          }
+        }
+        throw e;
       }
     };
-  }, [currentFolderId]);
+    proto.__querySelectorPatched = true;
+  };
+
+  // 通常のDOM（Document）と Shadow DOM（DocumentFragment）の両方に適用
+  patchQuerySelector(Document.prototype);
+  patchQuerySelector(DocumentFragment.prototype);
+}, []);
 
   // ファイルやフォルダがクリックされた時の処理
   const handleItemClick = (e: any) => {
@@ -78,7 +100,8 @@ const handleBackClick = () => {
     setSelectedFile(null); // 戻る時も選択を解除（追加）
   };
 
-  useEffect(() => {//tagデータ読み込み
+  useEffect(() => {
+    //tagデータ読み込み
     const savedTags = localStorage.getItem("my_onedrive_tags");
     if (savedTags) {
       setLocalTags(JSON.parse(savedTags));
@@ -136,15 +159,16 @@ const handleBackClick = () => {
         <h2>タグ編集パネル</h2>
         {selectedFile ? (
           <div>
-            <p><strong>選択中:</strong> {selectedFile.name}</p>
+            <p>
+              <strong>選択中:</strong> {selectedFile.name}
+            </p>
             
             <div>
               <strong>現在のタグ:</strong>
               <ul style={{ paddingLeft: "20px" }}>
                 {(localTags[selectedFile.id] || []).map((tag, idx) => (
                   <li key={idx} style={{ marginBottom: "5px" }}>
-                    {tag}{" "}
-                    {/* タグ削除ボタン */}
+                    {tag} {/* タグ削除ボタン */}
                     <button
                       onClick={() => removeTag(selectedFile.id, tag)}
                       style={{
@@ -165,10 +189,23 @@ const handleBackClick = () => {
             </div>
 
             <div style={{ marginTop: "15px" }}>
-              <strong>タグを追加:</strong><br />
-              <button onClick={() => addTag(selectedFile.id, "重要")} style={{ marginTop: "5px", marginRight: "5px" }}>+ 重要</button>
-              <button onClick={() => addTag(selectedFile.id, "確認済み")} style={{ marginTop: "5px" }}>+ 確認済み</button>
+              <strong>タグを追加:</strong>
+              <br />
+              <button 
+                onClick={() => addTag(selectedFile.id, "重要")}
+                style={{ marginTop: "5px", marginRight: "5px" }}
+              >
+                + 重要
+              </button>
+              <button
+                onClick={() => addTag(selectedFile.id, "確認済み")}
+                style={{ marginTop: "5px" }}
+              >
+                + 確認済み
+              </button>
             </div>
+          </div>
+        ) : null}
           
       {/* ファイルクリック時に表示される選択ダイアログ（モーダル） */}
       {actionModalFile && (
@@ -197,9 +234,17 @@ const handleBackClick = () => {
             }}
           >
             <h3>操作を選択</h3>
-            <p style={{ wordBreak: "break-all" }}><strong>{actionModalFile.name}</strong></p>
+            <p style={{ wordBreak: "break-all" }}>
+              <strong>{actionModalFile.name}</strong>
+            </p>
             
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "20px" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px", marginTop: "20px"
+              }}
+            >
               {/* 1. OneDriveで開く */}
               <button
                 onClick={() => {
