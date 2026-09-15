@@ -22,6 +22,7 @@ function App() {
   const [localTags, setLocalTags] = useState<Record<string, string[]>>({});
   const [actionModalFile, setActionModalFile] = useState<any>(null);
   const [tagModalFile, setTagModalFile] = useState<any>(null);
+  const [fileNameMap, setFileNameMap] = useState<Record<string, string>>({});
   const [newTagName, setNewTagName] = useState<string>("");
   const [newTagAddToQuickAdd, setNewTagAddToQuickAdd] = useState<boolean>(false);
   const [quickAddTags, setQuickAddTags] = useState<string[]>(["重要", "確認済み"]);
@@ -70,6 +71,7 @@ function App() {
       setCurrentFolderId(nextFolderId);
       setTagModalFile(null);
     } else {
+      setFileNameMap((prev) => ({ ...prev, [clickedItem.id]: clickedItem.name }));
       setActionModalFile(clickedItem);
     }
   };
@@ -93,7 +95,16 @@ const handleBackClick = () => {
     if (savedQuickAddTags) {
       setQuickAddTags(JSON.parse(savedQuickAddTags));
     }
+
+    const savedFileNameMap = localStorage.getItem("my_onedrive_file_names");
+    if (savedFileNameMap) {
+      setFileNameMap(JSON.parse(savedFileNameMap));
+    }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem("my_onedrive_file_names", JSON.stringify(fileNameMap));
+  }, [fileNameMap]);
 
   useEffect(() => {
     const derivedSearchPool = Array.from(
@@ -174,7 +185,7 @@ const handleBackClick = () => {
     })
     .map(([fileId, fileTags]) => ({
       id: fileId,
-      name: fileId,
+      name: fileNameMap[fileId] ?? fileId,
       tags: fileTags,
     }));
 
@@ -335,6 +346,7 @@ const handleBackClick = () => {
               {/* 2. タグを編集する */}
               <button
                 onClick={() => {
+                  setFileNameMap((prev) => ({ ...prev, [actionModalFile.id]: actionModalFile.name }));
                   setTagModalFile(actionModalFile);
                   setActionModalFile(null);
                 }}
@@ -454,7 +466,7 @@ const handleBackClick = () => {
                     checked={newTagAddToQuickAdd}
                     onChange={(e) => setNewTagAddToQuickAdd(e.target.checked)}
                   />
-                  タグプールに追加する
+                  追加プールに追加する
                 </label>
               </div>
               <button
