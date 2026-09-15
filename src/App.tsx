@@ -250,7 +250,7 @@ const handleBackClick = () => {
                   cursor: "pointer",
                   borderRadius: "4px",
                   border: "1px solid #aaa",
-                  backgroundColor: "#737272",
+                  backgroundColor: "#dddddd",
                 }}
               >
                 条件をクリア
@@ -435,7 +435,7 @@ const handleBackClick = () => {
                         cursor: "pointer",
                         borderRadius: "4px",
                         border: "1px solid #bbb",
-                        backgroundColor: "#575555",
+                        backgroundColor: "#9db1e8",
                       }}
                     >
                       + {tag}
