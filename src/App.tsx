@@ -102,7 +102,7 @@ const handleBackClick = () => {
     }
   }, []);
 
-  useEffect(() => {
+   useEffect(() => {
     localStorage.setItem("my_onedrive_file_names", JSON.stringify(fileNameMap));
   }, [fileNameMap]);
 
@@ -163,6 +163,14 @@ const handleBackClick = () => {
     });
   };
 
+  // 各タグの件数を集計する処理
+  const tagsCounts = Object.values(localTags).flat().reduce<Record<string, number>>((acc, tag) => {
+    const cleanedTags = tag.trim();
+    if (!cleanedTags) return acc;
+    acc[cleanedTags] = (acc[cleanedTags] || 0) + 1;
+    return acc;
+  }, {});
+  
   const allTags = searchPool;
 
   const toggleSelectedTag = (tag: string) => {
@@ -190,55 +198,79 @@ const handleBackClick = () => {
     }));
 
   return (
-    <div style={{ display: "flex", gap: "20px", position: "relative" }}>
-      {/* 左側: ファイル一覧 */}
-      <div style={{ flex: 2 }}>
-        <h1>マイ OneDrive</h1>
-        <Login />
-        <hr />
-
+    <div style={{ padding: "20px", textAlign: "left" }}>
+      
+      {/* ヘッダー */}
+      <div style={{  flex: 2 }}>
+        <header style={{ display: "flex" }}>
+          <h1>マイ OneDrive</h1>
+          <Login />
+        </header>
+          <hr />
+      </div>
         {currentFolderId !== "root" && (
           <button onClick={handleBackClick} style={{ marginBottom: "10px" }}>
             ⬅ 前のフォルダに戻る
           </button>
         )}
 
-        <div
-          style={{
-            marginBottom: "12px",
-            padding: "12px",
-            border: "1px solid #ddd",
-            borderRadius: "8px",
-            backgroundColor: "#ffffff",
-            textAlign: "left",
-          }}
-        >
-          <div style={{ fontWeight: "bold", marginBottom: "8px" }}>検索プール</div>
+        {/* ヘッダー下を二分割  左:タグ一覧 右:検索とファイル一覧*/}
+        <div style={{ display: "flex", gap: "20px", alignItems: "flex-start"}}>
 
-          <div style={{ marginTop: "10px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            {allTags.length === 0 ? (
-              <span style={{ color: "#666" }}>タグがまだありません</span>
-            ) : (
-              allTags.map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => toggleSelectedTag(tag)}
-                  style={{
-                    padding: "5px 10px",
-                    cursor: "pointer",
-                    borderRadius: "20px",
-                    border: selectedTags.includes(tag) ? "1px solid #0078d4" : "1px solid #bbb",
-                    backgroundColor: selectedTags.includes(tag) ? "#d9edff" : "#fff",
-                    color: selectedTags.includes(tag) ? "#005a9e" : "#333",
-                  }}
-                >
-                  #{tag}
-                </button>
-              ))
-            )}
-          </div>
+          {/* タグ一覧 */}
+          <aside style={{ flex: "0 0 200px",padding: "16px",border: "1px solid #ddd",borderRadius: "8px",backgroundColor: "#ffffff",}}>
+            <h3 style={{ marginTop: "0", marginBottom: "12px" }}>タグ一覧</h3>
+              {Object.keys(tagsCounts).length === 0 ? (
+              <span style={{ color: "#666", fontSize: "14px" }}>タグはありません</span>
+              ) : (
+                <ul style={{ paddingLeft: "20px", margin: 0 }}>
+                  {Object.entries(tagsCounts).map(([tag, count]) => (
+                   <li key={tag} style={{ marginBottom: "6px" }}>
+                    <button onClick={() => toggleSelectedTag(tag)} 
+                      style={{
+                              background: "none",
+                              border: "none",
+                              color: "#0078d4",
+                              cursor: "pointer",
+                              padding: 0,
+                              textDecoration: selectedTags.includes(tag) ? "underline" : "none",
+                              fontWeight: selectedTags.includes(tag) ? "bold" : "normal",
+                            }}>
+                      #{tag} ({count})
+                    </button>
+                   </li>
+                    ))}
+                  </ul>
+                  )}
+          </aside>
 
-          {selectedTags.length > 0 && (
+          {/* 右側の検索&ファイル一覧まとめたボックス */}
+          <main style={{ flex: 1 , padding: "20px", border: "1px solid #ddd", borderRadius: "8px", backgroundColor: "#ffffff"}}>        
+            {/* 検索プール */}
+            <div style={{ fontWeight: "bold", marginBottom: "8px" }}>検索プール</div>
+            <div style={{ marginTop: "10px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              {allTags.length === 0 ? (
+                <span style={{ color: "#666" }}>タグがまだありません</span>
+              ) : (
+                allTags.map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => toggleSelectedTag(tag)}
+                    style={{
+                      padding: "5px 10px",
+                      cursor: "pointer",
+                      borderRadius: "20px",
+                      border: selectedTags.includes(tag) ? "1px solid #0078d4" : "1px solid #bbb",
+                      backgroundColor: selectedTags.includes(tag) ? "#d9edff" : "#fff",
+                      color: selectedTags.includes(tag) ? "#005a9e" : "#333",
+                    }}>
+                    #{tag}
+                  </button>
+                ))
+              )}
+            </div>
+
+            {selectedTags.length > 0 && (
             <div style={{ marginTop: "10px" }}>
               <span style={{ marginRight: "8px", color: "#666" }}>
                 選択中: {selectedTags.map((tag) => `#${tag}`).join(" / ")}
@@ -259,46 +291,47 @@ const handleBackClick = () => {
           )}
 
           <div style={{ marginTop: "14px" }}>
-            <div style={{ fontWeight: "bold", marginBottom: "8px" }}>検索結果</div>
-            {tagSearchResults.length === 0 ? (
-              <div style={{ color: "#666" }}>タグに一致するファイルはありません</div>
-            ) : (
-              <ul style={{ margin: 0, paddingLeft: "20px", textAlign: "left" }}>
-                {tagSearchResults.map((result) => (
-                  <li key={result.id} style={{ marginBottom: "8px" }}>
-                    <span style={{ fontWeight: "bold" }}>{result.name}</span>
-                    <span style={{ color: "#666", marginLeft: "8px" }}>
-                      {result.tags.map((tag) => `#${tag}`).join(" ")}
-                    </span>
-                    <button
-                      onClick={() => {
-                        setTagModalFile({ id: result.id, name: result.name });
-                      }}
-                      style={{
-                        marginLeft: "8px",
-                        padding: "2px 8px",
-                        cursor: "pointer",
-                        borderRadius: "4px",
-                        border: "1px solid #28a745",
-                        backgroundColor: "#fff",
-                        color: "#28a745",
-                      }}
-                    >
-                      タグ編集
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
+            {/* 検索結果 */}
+              <div style={{ fontWeight: "bold", marginBottom: "8px" }}>検索結果</div>
+              {tagSearchResults.length === 0 ? (
+                <div style={{ color: "#666" }}>タグに一致するファイルはありません</div>
+              ) : (
+                <ul style={{ margin: 0, paddingLeft: "20px", textAlign: "left" }}>
+                 {tagSearchResults.map((result) => (
+                    <li key={result.id} style={{ marginBottom: "8px" }}>
+                     <span style={{ fontWeight: "bold" }}>{result.name}</span>
+                     <span style={{ color: "#666", marginLeft: "8px" }}>
+                       {result.tags.map((tag) => `#${tag}`).join(" ")}
+                     </span>
+                     <button
+                        onClick={() => {
+                          setTagModalFile({ id: result.id, name: result.name });
+                       }}
+                        style={{
+                          marginLeft: "8px",
+                         padding: "2px 8px",
+                         cursor: "pointer",
+                         borderRadius: "4px",
+                          border: "1px solid #28a745",
+                          backgroundColor: "#fff",
+                          color: "#28a745",
+                        }}>
+                        タグ編集
+                      </button>
+                    </li>
+                 ))}
+                </ul>
+              )}
+            </div>
 
-        <FileList
-          ref={fileListRef}
-          itemId={currentFolderId}
-          itemClick={handleItemClick}
-        />
-      </div>
+            {/* ファイル一覧 */}
+            <FileList
+             ref={fileListRef}
+              itemId={currentFolderId}
+              itemClick={handleItemClick}/>
+             </main>
+          </div>
+
 
       {/* ファイルクリック時のモーダル*/}
       {actionModalFile && (
@@ -466,7 +499,7 @@ const handleBackClick = () => {
                     checked={newTagAddToQuickAdd}
                     onChange={(e) => setNewTagAddToQuickAdd(e.target.checked)}
                   />
-                  追加プールに追加する
+                  追加タグに追加する
                 </label>
               </div>
               <button
