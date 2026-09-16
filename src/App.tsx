@@ -30,7 +30,7 @@ function App() {
   // 現在表示しているフォルダのIDを管理する（初期値は 'root'）
   const [currentFolderId, setCurrentFolderId] = useState<string>("root");
   // 過去に移動したフォルダIDの履歴（「戻る」ボタン用）
-  const [folderHistory, setFolderHistory] = useState<string[]>([]);
+  const [, setFolderHistory] = useState<string[]>([]);
   const fileListRef = useRef<any>(null);
   // タグ管理用
   const [localTags, setLocalTags] = useState<Record<string, string[]>>({});
@@ -43,56 +43,106 @@ function App() {
   // タグ検索用
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-  useEffect(() => {
-    const fileList = fileListRef.current;
-    if (!fileList) return;
+useEffect(() => {
+  const fileList = fileListRef.current;
 
-    const originalShowChildren = fileList.showChildren?.bind(fileList);
+  if (!fileList) {
+    console.log("FileListが取得できません");
+    return;
+  }
 
-    fileList.showChildren = (fileId: string) => {
-      const itemDOM = fileList.renderRoot?.getElementById?.(
-        `file-list-item-${fileId}`,
-      );
+  console.log("FileList取得成功:", fileList);
+  console.log("FileListのfiles:", fileList.files);
 
-      if (itemDOM) {
-        fileList.renderChildren(fileId, itemDOM);
-        return;
+  const handleContextMenu = (event: MouseEvent) => {
+    console.log("=================================");
+    console.log("右クリックイベント発生");
+
+    const path = event.composedPath();
+
+    console.log("composedPath:", path);
+
+    //mgt-file を探す
+    const fileElement = path.find(
+      (element) => {
+        const el = element as HTMLElement;
+
+        return (
+          el?.tagName?.toLowerCase() === "mgt-file" &&
+          el?.classList?.contains("mgt-file-item")
+        );
       }
+    ) as HTMLElement | undefined;
 
-      if (typeof originalShowChildren === "function") {
-        originalShowChildren(fileId);
-      }
-    };
+    console.log("見つかったmgt-file:", fileElement);
 
-    const root = fileList.renderRoot as HTMLElement | null;
-    if (!root) return;
+    if (!fileElement) {
+      console.log("mgt-fileが見つかりません");
+      return;
+    }
 
-    const handleContextMenu = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      const itemElement = target?.closest?.("[id^='file-list-item-']") as HTMLElement | null;
-      if (!itemElement) return;
+    //mgt-file が持っているファイル情報
+    const fileDetails =
+      (fileElement as any).fileDetails;
 
-      const itemId = itemElement.id.replace(/^file-list-item-/, "");
-      if (!itemId) return;
+    console.log("fileDetails:", fileDetails);
 
-      const itemName = itemElement.textContent?.trim() || fileNameMap[itemId] || itemId;
-      event.preventDefault();
-      event.stopPropagation();
+    if (!fileDetails) {
+      console.log("fileDetailsが取得できません");
+      return;
+    }
 
-      setFileNameMap((prev) => ({ ...prev, [itemId]: itemName }));
-      setTagModalFile({ id: itemId, name: itemName });
-    };
+    //OneDrive上のファイルID
+    const itemId = fileDetails.id;
 
-    root.addEventListener("contextmenu", handleContextMenu);
+    //OneDrive上のファイル名
+    const itemName =
+      fileDetails.name ??
+      fileNameMap[itemId] ??
+      itemId;
 
-    return () => {
-      if (typeof originalShowChildren === "function") {
-        fileList.showChildren = originalShowChildren;
-      }
-      root.removeEventListener("contextmenu", handleContextMenu);
-    };
-  }, [currentFolderId, fileNameMap]);
+    console.log("右クリックしたファイル:", {
+      id: itemId,
+      name: itemName,
+      fileDetails: fileDetails,
+    });
 
+    //ブラウザ標準の右クリックメニューを表示させない
+    event.preventDefault();
+    event.stopPropagation();
+
+    //ファイル名を保存
+    setFileNameMap((prev) => ({
+      ...prev,
+      [itemId]: itemName,
+    }));
+
+    //タグ編集モーダルを開く
+    setTagModalFile({
+      id: itemId,
+      name: itemName,
+    });
+
+    console.log("タグ編集モーダルを開きます");
+    console.log("=================================");
+  };
+
+  //documentのcapture phaseで右クリックを取得
+  document.addEventListener(
+    "contextmenu",
+    handleContextMenu,
+    true
+  );
+
+  return () => {
+    document.removeEventListener(
+      "contextmenu",
+      handleContextMenu,
+      true
+    );
+  };
+
+}, [currentFolderId, fileNameMap]);
 
   // ファイルやフォルダがクリックされた時の処理
   const handleItemClick = (e: any) => {
@@ -108,14 +158,7 @@ function App() {
     }
   };
 
-  // 「前のフォルダに戻る」ボタンの処理
-const handleBackClick = () => {
-    if (folderHistory.length === 0) return;
-    const previousFolderId = folderHistory[folderHistory.length - 1];
-    setFolderHistory((prev) => prev.slice(0, -1));
-    setCurrentFolderId(previousFolderId);
-    setTagModalFile(null);
-  };
+
 
   useEffect(() => {//tagデータ読み込み
     const savedTags = localStorage.getItem("my_onedrive_tags");
@@ -243,11 +286,7 @@ const handleBackClick = () => {
           <hr />
 
       </div>
-        {currentFolderId !== "root" && (
-          <button onClick={handleBackClick} style={{ marginBottom: "10px" }}>
-            ⬅ 前のフォルダに戻る
-          </button>
-        )}
+
 
         {/* ヘッダー下を二分割  左:タグ一覧 右:検索とファイル一覧*/}
         <div style={{ display: "flex", gap: "20px", alignItems: "flex-start"}}>
