@@ -278,7 +278,7 @@ useEffect(() => {
       {/* ヘッダー */}
       <div style={{  flex: 2 }}>
         <header style={{ display: "flex", alignItems: "center" }}>
-          <h1>マイ OneDrive</h1>
+          <h1>Clearfile</h1>
           <div style={{ position: "absolute", zIndex: "1000" , transform: "scale(1.2)" , right: "10%",  }}>
             <Login  />
           </div>
@@ -356,7 +356,7 @@ useEffect(() => {
                   cursor: "pointer",
                   borderRadius: "4px",
                   border: "1px solid #aaa",
-                  backgroundColor: "#737272",
+                  backgroundColor: "#bbbbbb",
                 }}
               >
                 条件をクリア
@@ -475,7 +475,7 @@ useEffect(() => {
                         cursor: "pointer",
                         borderRadius: "4px",
                         border: "1px solid #bbb",
-                        backgroundColor: "#575555",
+                        backgroundColor: "#a2bbea",
                       }}
                     >
                       + {tag}
