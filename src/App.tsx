@@ -20,7 +20,6 @@ function App() {
   const fileListRef = useRef<any>(null);
   // タグ管理用
   const [localTags, setLocalTags] = useState<Record<string, string[]>>({});
-  const [actionModalFile, setActionModalFile] = useState<any>(null);
   const [tagModalFile, setTagModalFile] = useState<any>(null);
   const [fileNameMap, setFileNameMap] = useState<Record<string, string>>({});
   const [newTagName, setNewTagName] = useState<string>("");
@@ -51,12 +50,34 @@ function App() {
       }
     };
 
+    const root = fileList.renderRoot as HTMLElement | null;
+    if (!root) return;
+
+    const handleContextMenu = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const itemElement = target?.closest?.("[id^='file-list-item-']") as HTMLElement | null;
+      if (!itemElement) return;
+
+      const itemId = itemElement.id.replace(/^file-list-item-/, "");
+      if (!itemId) return;
+
+      const itemName = itemElement.textContent?.trim() || fileNameMap[itemId] || itemId;
+      event.preventDefault();
+      event.stopPropagation();
+
+      setFileNameMap((prev) => ({ ...prev, [itemId]: itemName }));
+      setTagModalFile({ id: itemId, name: itemName });
+    };
+
+    root.addEventListener("contextmenu", handleContextMenu);
+
     return () => {
       if (typeof originalShowChildren === "function") {
         fileList.showChildren = originalShowChildren;
       }
+      root.removeEventListener("contextmenu", handleContextMenu);
     };
-  }, [currentFolderId]);
+  }, [currentFolderId, fileNameMap]);
 
 
   // ファイルやフォルダがクリックされた時の処理
@@ -70,9 +91,6 @@ function App() {
       setFolderHistory((prev) => [...prev, currentFolderId]);
       setCurrentFolderId(nextFolderId);
       setTagModalFile(null);
-    } else {
-      setFileNameMap((prev) => ({ ...prev, [clickedItem.id]: clickedItem.name }));
-      setActionModalFile(clickedItem);
     }
   };
 
@@ -299,73 +317,6 @@ const handleBackClick = () => {
           itemClick={handleItemClick}
         />
       </div>
-
-      {/* ファイルクリック時のモーダル*/}
-      {actionModalFile && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: "#fff",
-              padding: "20px",
-              borderRadius: "8px",
-              minWidth: "300px",
-              textAlign: "center",
-              boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
-            }}
-          >
-            <h3>操作を選択</h3>
-            <p style={{ wordBreak: "break-all" }}><strong>{actionModalFile.name}</strong></p>
-            
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "20px" }}>
-              {/* 1. OneDriveで開く */}
-              <button
-                onClick={() => {
-                  
-                    window.open(actionModalFile.webUrl, "_blank", "noopener,noreferrer");
-                  
-                  setActionModalFile(null);
-                }}
-                style={{ padding: "8px", cursor: "pointer", backgroundColor: "#0078d4", color: "#fff", border: "none", borderRadius: "4px" }}
-              >
-                開く
-              </button>
-
-              {/* 2. タグを編集する */}
-              <button
-                onClick={() => {
-                  setFileNameMap((prev) => ({ ...prev, [actionModalFile.id]: actionModalFile.name }));
-                  setTagModalFile(actionModalFile);
-                  setActionModalFile(null);
-                }}
-                style={{ padding: "8px", cursor: "pointer", backgroundColor: "#28a745", color: "#fff", border: "none", borderRadius: "4px" }}
-              >
-                タグを編集する
-              </button>
-
-              {/* 3. キャンセル */}
-              <button
-                onClick={() => setActionModalFile(null)}
-                style={{ padding: "5px", cursor: "pointer", backgroundColor: "#ccc", border: "none", borderRadius: "4px", marginTop: "5px" }}
-              >
-                キャンセル
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {tagModalFile && (
         <div
