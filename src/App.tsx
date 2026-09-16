@@ -204,11 +204,12 @@ const handleBackClick = () => {
       <div style={{  flex: 2 }}>
         <header style={{ display: "flex", alignItems: "center" }}>
           <h1>マイ OneDrive</h1>
-          <div style={{ transform: "scale(1.2)" , position: "absolute", right: "10%" }}>
-            <Login />
+          <div style={{ position: "absolute", zIndex: "1000" , transform: "scale(1.2)" , right: "10%",  }}>
+            <Login  />
           </div>
         </header>
           <hr />
+
       </div>
         {currentFolderId !== "root" && (
           <button onClick={handleBackClick} style={{ marginBottom: "10px" }}>
