@@ -202,9 +202,9 @@ const handleBackClick = () => {
       
       {/* ヘッダー */}
       <div style={{  flex: 2 }}>
-        <header style={{ display: "flex" }}>
+        <header style={{ display: "flex", alignItems: "center" }}>
           <h1>マイ OneDrive</h1>
-          <div style={{ position: "absolute", top: "3%", right: "10%" }}>
+          <div style={{ transform: "scale(1.2)" , position: "absolute", right: "10%" }}>
             <Login />
           </div>
         </header>
