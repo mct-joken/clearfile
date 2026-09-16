@@ -11,6 +11,20 @@ Providers.globalProvider = new Msal2Provider({
   scopes: ["Files.Read", "Files.Read.All", "User.Read"], // OneDriveを読む許可をもらう
 });
 
+// MGT内部の '!' による querySelector クラッシュを防止するパッチ
+const originalQuerySelector = DocumentFragment.prototype.querySelector;
+DocumentFragment.prototype.querySelector = function (selector: string) {
+  try {
+    return originalQuerySelector.call(this, selector);
+  } catch (e) {
+    // IDに '!' などが含まれてエラーになった場合、属性セレクター形式に自動変換して再試行
+    if (selector.startsWith('#')) {
+      const id = selector.slice(1);
+      return this.querySelector(`[id="${CSS.escape(id)}"]`);
+    }
+    throw e;
+  }
+};
 
 function App() {
   // 現在表示しているフォルダのIDを管理する（初期値は 'root'）
