@@ -193,7 +193,7 @@ const handleBackClick = () => {
     <div style={{ display: "flex", gap: "20px", position: "relative" }}>
       {/* 左側: ファイル一覧 */}
       <div style={{ flex: 2 }}>
-        <h1>マイ OneDrive</h1>
+        <h1>ClearFile</h1>
         <Login />
         <hr />
 
