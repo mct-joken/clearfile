@@ -30,7 +30,7 @@ function App() {
   // 現在表示しているフォルダのIDを管理する（初期値は 'root'）
   const [currentFolderId, setCurrentFolderId] = useState<string>("root");
   // 過去に移動したフォルダIDの履歴（「戻る」ボタン用）
-  const [folderHistory, setFolderHistory] = useState<string[]>([]);
+  const [, setFolderHistory] = useState<string[]>([]);
   const fileListRef = useRef<any>(null);
   // タグ管理用
   const [localTags, setLocalTags] = useState<Record<string, string[]>>({});
@@ -108,14 +108,7 @@ function App() {
     }
   };
 
-  // 「前のフォルダに戻る」ボタンの処理
-const handleBackClick = () => {
-    if (folderHistory.length === 0) return;
-    const previousFolderId = folderHistory[folderHistory.length - 1];
-    setFolderHistory((prev) => prev.slice(0, -1));
-    setCurrentFolderId(previousFolderId);
-    setTagModalFile(null);
-  };
+
 
   useEffect(() => {//tagデータ読み込み
     const savedTags = localStorage.getItem("my_onedrive_tags");
@@ -243,11 +236,7 @@ const handleBackClick = () => {
           <hr />
 
       </div>
-        {currentFolderId !== "root" && (
-          <button onClick={handleBackClick} style={{ marginBottom: "10px" }}>
-            ⬅ 前のフォルダに戻る
-          </button>
-        )}
+
 
         {/* ヘッダー下を二分割  左:タグ一覧 右:検索とファイル一覧*/}
         <div style={{ display: "flex", gap: "20px", alignItems: "flex-start"}}>
