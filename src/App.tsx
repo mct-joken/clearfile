@@ -70,6 +70,8 @@ function App() {
   const [tagModalFile, setTagModalFile] = useState<any>(null);
   const [fileNameMap, setFileNameMap] = useState<Record<string, string>>({});
   
+  const [microsoftUserId, setMicrosoftUserId] = useState<string | null>(null);
+
   type DbTag = {
       id: number;
       name: string;
@@ -86,6 +88,29 @@ function App() {
 
   // タグ追加メニューで選択中のタグ
   const [selectedAddTags, setSelectedAddTags] = useState<string[]>([]);
+
+useEffect(() => {
+  const loadUserId = async () => {
+    if (Providers.globalProvider.state !== ProviderState.SignedIn) {
+      setMicrosoftUserId(null);
+      return;
+    }
+
+    try {
+      const user = await Providers.globalProvider.graph.client
+        .api("me?$select=id")
+        .get();
+
+      if (user?.id) {
+        setMicrosoftUserId(user.id);
+      }
+    } catch (error) {
+      console.error("MicrosoftユーザーIDの取得に失敗:", error);
+    }
+  };
+
+  loadUserId();
+}, []);
 
 useEffect(() => {
   const fileList = fileListRef.current;
@@ -239,34 +264,62 @@ addFile(itemId, itemName, itemAddress)
     }
   };
 
-
-
-  useEffect(() => {//tagデータ読み込み
-    const savedQuickAddTags = localStorage.getItem("my_onedrive_quick_add_tags");
-    if (savedQuickAddTags) {
-      setQuickAddTags(JSON.parse(savedQuickAddTags));
-    }
-
-    const savedFileNameMap = localStorage.getItem("my_onedrive_file_names");
-    if (savedFileNameMap) {
-      setFileNameMap(JSON.parse(savedFileNameMap));
-    }
-  }, []);
-
-   useEffect(() => {
-    localStorage.setItem("my_onedrive_file_names", JSON.stringify(fileNameMap));
-  }, [fileNameMap]);
-
   useEffect(() => {
-    const derivedSearchPool = Array.from(
-      new Set(Object.values(localTags).flat().map((tag) => tag.trim())),
-    ).sort((a, b) => a.localeCompare(b));
-    setSearchPool(derivedSearchPool);
-  }, [localTags]);
+  // MicrosoftユーザーIDが取得できてからlocalStorageを読み込む
+  if (!microsoftUserId) {
+    return;
+  }
 
-  useEffect(() => {
-    localStorage.setItem("my_onedrive_quick_add_tags", JSON.stringify(quickAddTags));
-  }, [quickAddTags]);
+  const savedQuickAddTags = localStorage.getItem(
+    `my_onedrive_quick_add_tags_${microsoftUserId}`,
+  );
+
+  if (savedQuickAddTags) {
+    setQuickAddTags(JSON.parse(savedQuickAddTags));
+  } else {
+    setQuickAddTags([]);
+  }
+
+  const savedFileNameMap = localStorage.getItem(
+    `my_onedrive_file_names_${microsoftUserId}`,
+  );
+
+  if (savedFileNameMap) {
+    setFileNameMap(JSON.parse(savedFileNameMap));
+  } else {
+    setFileNameMap({});
+  }
+}, [microsoftUserId]);
+
+useEffect(() => {
+  if (!microsoftUserId) {
+    return;
+  }
+
+  localStorage.setItem(
+    `my_onedrive_file_names_${microsoftUserId}`,
+    JSON.stringify(fileNameMap),
+  );
+}, [fileNameMap, microsoftUserId]);
+
+useEffect(() => {
+  const derivedSearchPool = Array.from(
+    new Set(Object.values(localTags).flat().map((tag) => tag.trim())),
+  ).sort((a, b) => a.localeCompare(b));
+
+  setSearchPool(derivedSearchPool);
+}, [localTags]);
+
+useEffect(() => {
+  if (!microsoftUserId) {
+    return;
+  }
+
+  localStorage.setItem(
+    `my_onedrive_quick_add_tags_${microsoftUserId}`,
+    JSON.stringify(quickAddTags),
+  );
+}, [quickAddTags, microsoftUserId]);
 
 const addTag = async (fileId: string, tag: string) => {
   const cleanedTag = tag.trim();
