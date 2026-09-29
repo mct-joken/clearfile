@@ -1,63 +1,32 @@
-# clearfile
+# React + TypeScript + Vite
 
-OneDrive上のファイルをタグで管理するWebアプリケーション。
+This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
-## Stack
+Currently, two official plugins are available:
 
-- Frontend: React / TypeScript / Vite
-- Backend: Node.js / Express
-- Database: MySQL
-- OneDrive: Microsoft Graph API / MSAL
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## Setup
+## React Compiler
 
-### 1. Install
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-```bash
-npm install
+## Expanding the Oxlint configuration
 
-### 2. Environment variables
+If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
 
-`.env.example` を `.env` にコピーして設定する。
+```json
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "oxc"],
+  "options": {
+    "typeAware": true
+  },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+  }
+}
+```
 
-VITE_CLIENT_ID=
-DB_HOST=
-DB_PORT=3306
-DB_USER=
-DB_PASSWORD=
-DB_NAME=clearfile_db
-
-`.env` はGit管理対象外。
-
-### 3. Database
-
-`database/schema.sql` を `clearfile_db` に適用する。
-
-mysql -u <DB_USER> -p clearfile_db < database/schema.sql
-
-### 4. Run
-
-Backend:
-
-node backend/index.js
-
-Frontend:
-
-npm run dev
-
-Frontend: http://localhost:5173
-Backend: http://localhost:3000
-
-## Database
-
-- `files` - OneDriveファイル
-- `tags` - タグ
-- `file_tags` - ファイルとタグの関連
-
-## API
-
-- `GET /api/files`
-- `POST /api/files`
-- `POST /api/files/:fileId/tags`
-- `GET /api/files/:fileId/tags`
-- `DELETE /api/files/:fileId/tags/:tagId`
+See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
