@@ -36,6 +36,8 @@ function App() {
   const [localTags, setLocalTags] = useState<Record<string, string[]>>({});
   const [tagModalFile, setTagModalFile] = useState<any>(null);
   const [fileNameMap, setFileNameMap] = useState<Record<string, string>>({});
+  // ファイルの場所を保存
+  const [fileLocationMap, setFileLocationMap] = useState<Record<string, string>>({});
   const [newTagName, setNewTagName] = useState<string>("");
   const [newTagAddToQuickAdd, setNewTagAddToQuickAdd] = useState<boolean>(false);
   const [quickAddTags, setQuickAddTags] = useState<string[]>(["重要", "確認済み"]);
@@ -82,10 +84,20 @@ useEffect(() => {
     }
 
     //mgt-file が持っているファイル情報
-    const fileDetails =
-      (fileElement as any).fileDetails;
+  const fileDetails =
+    (fileElement as any).fileDetails;
 
-    console.log("fileDetails:", fileDetails);
+  console.log("fileDetails:", fileDetails);
+
+  if (!fileDetails) {
+  console.log("fileDetailsが取得できません");
+  return;
+  }
+
+  // OneDrive上の親フォルダのパス
+  const parentPath = fileDetails.parentReference?.path;
+
+  console.log("親フォルダのパス:", parentPath);
 
     if (!fileDetails) {
       console.log("fileDetailsが取得できません");
@@ -116,6 +128,14 @@ useEffect(() => {
       ...prev,
       [itemId]: itemName,
     }));
+
+    // ファイルの場所を保存
+    if (parentPath) {
+      setFileLocationMap((prev) => ({
+        ...prev,
+        [itemId]: parentPath,
+      }));
+    }
 
     //タグ編集モーダルを開く
     setTagModalFile({
@@ -175,11 +195,21 @@ useEffect(() => {
     if (savedFileNameMap) {
       setFileNameMap(JSON.parse(savedFileNameMap));
     }
+
+    const savedFileLocationMap = localStorage.getItem("my_onedrive_file_locations");
+    if (savedFileLocationMap) {
+        setFileLocationMap(JSON.parse(savedFileLocationMap));
+    } 
   }, []);
 
    useEffect(() => {
     localStorage.setItem("my_onedrive_file_names", JSON.stringify(fileNameMap));
   }, [fileNameMap]);
+
+    useEffect(() => {
+      localStorage.setItem("my_onedrive_file_locations",JSON.stringify(fileLocationMap)
+    );
+  }, [fileLocationMap]);
 
   useEffect(() => {
     const derivedSearchPool = Array.from(
@@ -378,9 +408,13 @@ const tagSearchResults =
                  {tagSearchResults.map((result) => (
                     <li key={result.id} style={{ marginBottom: "8px" }}>
                      <span style={{ fontWeight: "bold" }}>{result.name}</span>
-                     <span style={{ color: "#666", marginLeft: "8px" }}>
-                       {result.tags.map((tag) => `#${tag}`).join(" ")}
-                     </span>
+                     <span style={{ marginLeft: "8px" }}>
+                       {result.tags.map((tag) => (
+                      <span key={tag} style={{color: "#0078d4",marginRight: "8px",}}>
+                        #{tag}
+                        </span>
+                      ))}
+                    </span>
                      <button
                         onClick={() => {
                           setTagModalFile({ id: result.id, name: result.name });
@@ -396,6 +430,9 @@ const tagSearchResults =
                         }}>
                         タグ編集
                       </button>
+                      {/* ファイルの場所 */}
+                      <div style={{marginTop: "4px", marginLeft: "4px", color: "#777", fontSize: "13px",}}></div>
+                      📁 {formatFileLocation(fileLocationMap[result.id])}
                     </li>
                  ))}
                 </ul>
@@ -553,6 +590,25 @@ const tagSearchResults =
     </div>
   );
 }
+
+const formatFileLocation = (path: string | undefined) => {
+  if (!path) {
+    return "場所不明";
+  }
+
+  const cleanPath = path
+    .replace(/^\/drive\/root:?/, "")
+    .replace(/^\/+/, "");
+
+  if (!cleanPath) {
+    return "マイ OneDrive";
+  }
+
+  return `マイ OneDrive > ${cleanPath
+    .split("/")
+    .map((folder) => decodeURIComponent(folder))
+    .join(" > ")}`;
+};
 
 
 export default App;
