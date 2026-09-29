@@ -1,4 +1,4 @@
-import { Providers } from "@microsoft/mgt-element";
+import { Providers, ProviderState } from "@microsoft/mgt-element";
 import { Msal2Provider } from "@microsoft/mgt-msal2-provider";
 import { Login, FileList } from "@microsoft/mgt-react";
 import { useEffect, useRef, useState } from "react";
@@ -36,14 +36,29 @@ DocumentFragment.prototype.querySelector = function (selector: string) {
 function App() {
 
     useEffect(() => {
-    getFiles()
-      .then((files) => {
-        console.log("DBから取得したファイル:", files);
-      })
-      .catch((error) => {
-        console.error("DBからのファイル取得に失敗:", error);
-      });
-  }, []);
+      const handleProviderUpdated = () => {
+        if (Providers.globalProvider.state !== ProviderState.SignedIn) {
+          return;
+        }
+
+        getFiles()
+          .then((files) => {
+            console.log("DBから取得したファイル:", files);
+          })
+          .catch((error) => {
+            console.error("DBからのファイル取得に失敗:", error);
+          });
+      };
+
+      Providers.onProviderUpdated(handleProviderUpdated);
+
+      // すでにログイン済みの場合にも実行
+      handleProviderUpdated();
+
+      return () => {
+        Providers.removeProviderUpdatedListener(handleProviderUpdated);
+      };
+    }, []);
 
   // 現在表示しているフォルダのIDを管理する（初期値は 'root'）
   const [currentFolderId, setCurrentFolderId] = useState<string>("root");

@@ -11,6 +11,76 @@ app.use(cors({
 
 const PORT = 3000;
 
+// Microsoft Graphからログインユーザーを取得する
+async function authenticateUser(req, res, next) {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({
+                message: '認証情報がありません'
+            });
+        }
+
+        const accessToken = authHeader.substring('Bearer '.length);
+
+        // Microsoft Graphにアクセストークンを渡して
+        // 現在のユーザー情報を取得する
+        const response = await fetch(
+            'https://graph.microsoft.com/v1.0/me?$select=id',
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            }
+        );
+
+        if (!response.ok) {
+            return res.status(401).json({
+                message: '認証に失敗しました'
+            });
+        }
+
+        const user = await response.json();
+
+        // usersテーブルにユーザーが存在するか確認
+        const [users] = await pool.execute(
+            `SELECT id
+             FROM users
+             WHERE microsoft_user_id = ?`,
+            [user.id]
+        );
+
+        let userId;
+
+        if (users.length > 0) {
+            // 既存ユーザー
+            userId = users[0].id;
+        } else {
+            // 初めて利用するユーザー
+            const [result] = await pool.execute(
+                `INSERT INTO users (microsoft_user_id)
+                 VALUES (?)`,
+                [user.id]
+            );
+
+            userId = result.insertId;
+        }
+
+        // 後続のAPIから使えるようにする
+        req.userId = userId;
+
+        next();
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            message: 'ユーザー認証失敗'
+        });
+    }
+}
+
 // JSON形式のデータを受け取れるようにする
 app.use(express.json());
 
@@ -24,16 +94,17 @@ const pool = mysql.createPool({
 });
 
 // ファイル登録API
-app.post('/api/files', async (req, res) => {
+app.post('/api/files', authenticateUser, async (req, res) => {
     try {
         const { oneDriveId, fileName, address } = req.body;
 
         // すでに同じOneDriveファイルが登録されているか確認
         const [existingFiles] = await pool.execute(
             `SELECT id
-             FROM files
-             WHERE onedrive_id = ?`,
-            [oneDriveId]
+            FROM files
+            WHERE user_id = ?
+                AND onedrive_id = ?`,
+            [req.userId, oneDriveId]
         );
 
         // すでに登録されている場合
@@ -46,9 +117,10 @@ app.post('/api/files', async (req, res) => {
 
         // 未登録の場合は新しく登録
         const [result] = await pool.execute(
-            `INSERT INTO files (onedrive_id, file_name, address)
-             VALUES (?, ?, ?)`,
-            [oneDriveId, fileName, address]
+            `INSERT INTO files
+                (user_id, onedrive_id, file_name, address)
+            VALUES (?, ?, ?, ?)`,
+            [req.userId, oneDriveId, fileName, address]
         );
 
         res.json({
@@ -66,10 +138,13 @@ app.post('/api/files', async (req, res) => {
 });
 
 // ファイル一覧取得API
-app.get('/api/files', async (req, res) => {
+app.get('/api/files', authenticateUser, async (req, res) => {
     try {
         const [rows] = await pool.execute(
-            'SELECT * FROM files'
+            `SELECT *
+            FROM files
+            WHERE user_id = ?`,
+            [req.userId]
         );
 
         res.json(rows);
@@ -83,15 +158,33 @@ app.get('/api/files', async (req, res) => {
 });
 
 // ファイルにタグを追加するAPI
-app.post('/api/files/:fileId/tags', async (req, res) => {
+app.post('/api/files/:fileId/tags', authenticateUser, async (req, res) => {
     try {
         const { fileId } = req.params;
+
+        const [files] = await pool.execute(
+            `SELECT id
+            FROM files
+            WHERE id = ?
+                AND user_id = ?`,
+            [fileId, req.userId]
+        );
+
+        if (files.length === 0) {
+            return res.status(404).json({
+                message: 'ファイルが見つかりません'
+            });
+        }
+
         const { name } = req.body;
 
         // タグがすでに存在するか確認
         const [tags] = await pool.execute(
-            'SELECT id FROM tags WHERE name = ?',
-            [name]
+            `SELECT id
+            FROM tags
+            WHERE user_id = ?
+                AND name = ?`,
+            [req.userId, name]
         );
 
         let tagId;
@@ -102,8 +195,9 @@ app.post('/api/files/:fileId/tags', async (req, res) => {
         } else {
             // 存在しない場合は新しく作る
             const [result] = await pool.execute(
-                'INSERT INTO tags (name) VALUES (?)',
-                [name]
+                `INSERT INTO tags (user_id, name)
+                VALUES (?, ?)`,
+                [req.userId, name]
             );
 
             tagId = result.insertId;
@@ -131,17 +225,21 @@ app.post('/api/files/:fileId/tags', async (req, res) => {
 });
 
 // ファイルのタグを取得するAPI
-app.get('/api/files/:fileId/tags', async (req, res) => {
+app.get('/api/files/:fileId/tags', authenticateUser, async (req, res) => {
     try {
         const { fileId } = req.params;
 
         const [rows] = await pool.execute(
             `SELECT tags.id, tags.name
-             FROM tags
-             INNER JOIN file_tags
-             ON tags.id = file_tags.tag_id
-             WHERE file_tags.file_id = ?`,
-            [fileId]
+            FROM tags
+            INNER JOIN file_tags
+                ON tags.id = file_tags.tag_id
+            INNER JOIN files
+                ON files.id = file_tags.file_id
+            WHERE file_tags.file_id = ?
+            AND files.user_id = ?
+            AND tags.user_id = ?`,
+            [fileId, req.userId, req.userId]
         );
 
         res.json(rows);
@@ -156,14 +254,24 @@ app.get('/api/files/:fileId/tags', async (req, res) => {
 });
 
 // ファイルからタグを削除するAPI
-app.delete('/api/files/:fileId/tags/:tagId', async (req, res) => {
+app.delete(
+    '/api/files/:fileId/tags/:tagId',
+    authenticateUser,
+    async (req, res) => {
     try {
         const { fileId, tagId } = req.params;
 
-        await pool.execute(
+       await pool.execute(
             `DELETE FROM file_tags
-             WHERE file_id = ? AND tag_id = ?`,
-            [fileId, tagId]
+            WHERE file_id = ?
+            AND tag_id = ?
+            AND EXISTS (
+                SELECT 1
+                FROM files
+                WHERE files.id = file_tags.file_id
+                    AND files.user_id = ?
+            )`,
+            [fileId, tagId, req.userId]
         );
 
         res.json({
