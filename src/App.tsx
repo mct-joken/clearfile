@@ -4,6 +4,7 @@ import { Login, FileList } from "@microsoft/mgt-react";
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
 
+import { getFiles } from "./api/files";
 
 // アプリの起動時に一度だけ実行
 Providers.globalProvider = new Msal2Provider({
@@ -27,6 +28,17 @@ DocumentFragment.prototype.querySelector = function (selector: string) {
 };
 
 function App() {
+
+    useEffect(() => {
+    getFiles()
+      .then((files) => {
+        console.log("DBから取得したファイル:", files);
+      })
+      .catch((error) => {
+        console.error("DBからのファイル取得に失敗:", error);
+      });
+  }, []);
+  
   // 現在表示しているフォルダのIDを管理する（初期値は 'root'）
   const [currentFolderId, setCurrentFolderId] = useState<string>("root");
   // 過去に移動したフォルダIDの履歴（「戻る」ボタン用）

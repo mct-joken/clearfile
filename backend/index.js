@@ -26,11 +26,11 @@ const pool = mysql.createPool({
 // ファイル登録API
 app.post('/api/files', async (req, res) => {
     try {
-        const { fileName, address } = req.body;
+        const { oneDriveId, fileName, address } = req.body;
 
         const [result] = await pool.execute(
-            'INSERT INTO files (file_name, address) VALUES (?, ?)',
-            [fileName, address]
+            'INSERT INTO files (onedrive_id, file_name, address) VALUES (?, ?, ?)',
+            [oneDriveId, fileName, address]
         );
 
         res.status(201).json({
