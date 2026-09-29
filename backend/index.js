@@ -28,13 +28,31 @@ app.post('/api/files', async (req, res) => {
     try {
         const { oneDriveId, fileName, address } = req.body;
 
+        // すでに同じOneDriveファイルが登録されているか確認
+        const [existingFiles] = await pool.execute(
+            `SELECT id
+             FROM files
+             WHERE onedrive_id = ?`,
+            [oneDriveId]
+        );
+
+        // すでに登録されている場合
+        if (existingFiles.length > 0) {
+            return res.json({
+                message: 'ファイルはすでに登録されています',
+                fileId: existingFiles[0].id
+            });
+        }
+
+        // 未登録の場合は新しく登録
         const [result] = await pool.execute(
-            'INSERT INTO files (onedrive_id, file_name, address) VALUES (?, ?, ?)',
+            `INSERT INTO files (onedrive_id, file_name, address)
+             VALUES (?, ?, ?)`,
             [oneDriveId, fileName, address]
         );
 
-        res.status(201).json({
-            message: 'ファイル登録完了',
+        res.json({
+            message: 'ファイル登録',
             fileId: result.insertId
         });
 

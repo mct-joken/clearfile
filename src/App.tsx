@@ -4,7 +4,13 @@ import { Login, FileList } from "@microsoft/mgt-react";
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
 
-import { getFiles } from "./api/files";
+import {
+  getFiles,
+  addFile,
+  getFileTags,
+  addFileTag,
+  deleteFileTag,
+} from "./api/files";
 
 // アプリの起動時に一度だけ実行
 Providers.globalProvider = new Msal2Provider({
@@ -38,7 +44,7 @@ function App() {
         console.error("DBからのファイル取得に失敗:", error);
       });
   }, []);
-  
+
   // 現在表示しているフォルダのIDを管理する（初期値は 'root'）
   const [currentFolderId, setCurrentFolderId] = useState<string>("root");
   // 過去に移動したフォルダIDの履歴（「戻る」ボタン用）
@@ -48,12 +54,23 @@ function App() {
   const [localTags, setLocalTags] = useState<Record<string, string[]>>({});
   const [tagModalFile, setTagModalFile] = useState<any>(null);
   const [fileNameMap, setFileNameMap] = useState<Record<string, string>>({});
+  
+  type DbTag = {
+      id: number;
+      name: string;
+    };
+
+  const [dbTags, setDbTags] = useState<Record<string, DbTag[]>>({});
+  const [dbFileIds, setDbFileIds] = useState<Record<string, number>>({});
   const [newTagName, setNewTagName] = useState<string>("");
   const [newTagAddToQuickAdd, setNewTagAddToQuickAdd] = useState<boolean>(false);
   const [quickAddTags, setQuickAddTags] = useState<string[]>(["重要", "確認済み"]);
   const [searchPool, setSearchPool] = useState<string[]>([]);
   // タグ検索用
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // タグ追加メニューで選択中のタグ
+  const [selectedAddTags, setSelectedAddTags] = useState<string[]>([]);
 
 useEffect(() => {
   const fileList = fileListRef.current;
@@ -113,11 +130,45 @@ useEffect(() => {
       fileNameMap[itemId] ??
       itemId;
 
+      //OneDrive上のファイルURL
+    const itemAddress = fileDetails.webUrl;
+
     console.log("右クリックしたファイル:", {
       id: itemId,
       name: itemName,
       fileDetails: fileDetails,
     });
+
+addFile(itemId, itemName, itemAddress)
+  .then(async (result) => {
+    console.log("DBへのファイル登録成功:", result);
+
+    const dbFileId = result.fileId;
+
+    setDbFileIds((prev) => ({
+      ...prev,
+      [itemId]: dbFileId,
+    }));
+
+    const tags = await getFileTags(dbFileId);
+
+    console.log("DBから取得したタグ:", tags);
+
+    // タグID付きで保存
+    setDbTags((prev) => ({
+      ...prev,
+      [itemId]: tags,
+    }));
+
+    // 画面表示用にはタグ名だけ保存
+    setLocalTags((prev) => ({
+      ...prev,
+      [itemId]: tags.map((tag: DbTag) => tag.name),
+    }));
+  })
+  .catch((error) => {
+    console.error("DBへのファイル登録・タグ取得失敗:", error);
+  });
 
     //ブラウザ標準の右クリックメニューを表示させない
     event.preventDefault();
@@ -128,6 +179,9 @@ useEffect(() => {
       ...prev,
       [itemId]: itemName,
     }));
+
+    // タグ追加候補の選択状態をリセット
+    setSelectedAddTags([]);
 
     //タグ編集モーダルを開く
     setTagModalFile({
@@ -173,11 +227,6 @@ useEffect(() => {
 
 
   useEffect(() => {//tagデータ読み込み
-    const savedTags = localStorage.getItem("my_onedrive_tags");
-    if (savedTags) {
-      setLocalTags(JSON.parse(savedTags));
-    }
-
     const savedQuickAddTags = localStorage.getItem("my_onedrive_quick_add_tags");
     if (savedQuickAddTags) {
       setQuickAddTags(JSON.parse(savedQuickAddTags));
@@ -200,30 +249,42 @@ useEffect(() => {
     setSearchPool(derivedSearchPool);
   }, [localTags]);
 
-  // タグの更新処理
-  useEffect(() => {
-    localStorage.setItem("my_onedrive_tags", JSON.stringify(localTags));
-  }, [localTags]);
-
   useEffect(() => {
     localStorage.setItem("my_onedrive_quick_add_tags", JSON.stringify(quickAddTags));
   }, [quickAddTags]);
 
-  // タグの追加処理
-  const addTag = (fileId: string, tag: string) => {
-    const cleanedTag = tag.trim();
-    if (!cleanedTag) return;
+const addTag = async (fileId: string, tag: string) => {
+  const cleanedTag = tag.trim();
 
-    setLocalTags((prev) => {
-      const currentFileTags = prev[fileId] || [];
-      const alreadyExists = currentFileTags.some(
-        (existingTag) => existingTag.toLowerCase() === cleanedTag.toLowerCase(),
-      );
+  if (!cleanedTag) return;
 
-      if (alreadyExists) return prev; // 重複防止
-      return { ...prev, [fileId]: [...currentFileTags, cleanedTag] };
-    });
-  };
+  const dbFileId = dbFileIds[fileId];
+
+  if (dbFileId === undefined) {
+    console.error("MySQL側のファイルIDがありません:", fileId);
+    return;
+  }
+
+  try {
+    await addFileTag(dbFileId, cleanedTag);
+
+    const tags = await getFileTags(dbFileId);
+
+    setDbTags((prev) => ({
+      ...prev,
+      [fileId]: tags,
+    }));
+
+    setLocalTags((prev) => ({
+      ...prev,
+      [fileId]: tags.map((tag: DbTag) => tag.name),
+    }));
+
+    console.log("タグ追加成功:", cleanedTag);
+  } catch (error) {
+    console.error("タグ追加失敗:", error);
+  }
+};
 
   const addQuickAddTag = (tag: string) => {
     const cleanedTag = tag.trim();
@@ -240,15 +301,45 @@ useEffect(() => {
   };
 
   // タグの削除処理
-  const removeTag = (fileId: string, tagToRemove: string) => {
-    setLocalTags((prev) => {
-      const currentFileTags = prev[fileId] || [];
-      return {
-        ...prev,
-        [fileId]: currentFileTags.filter((tag) => tag !== tagToRemove),
-      };
-    });
-  };
+ const removeTag = async (fileId: string, tagToRemove: string) => {
+  const dbFileId = dbFileIds[fileId];
+
+  if (dbFileId === undefined) {
+    console.error("MySQL側のファイルIDがありません:", fileId);
+    return;
+  }
+
+  const tags = dbTags[fileId] || [];
+
+  const targetTag = tags.find(
+    (tag) => tag.name === tagToRemove
+  );
+
+  if (!targetTag) {
+    console.error("削除対象のタグが見つかりません:", tagToRemove);
+    return;
+  }
+
+  try {
+    await deleteFileTag(dbFileId, targetTag.id);
+
+    const updatedTags = await getFileTags(dbFileId);
+
+    setDbTags((prev) => ({
+      ...prev,
+      [fileId]: updatedTags,
+    }));
+
+    setLocalTags((prev) => ({
+      ...prev,
+      [fileId]: updatedTags.map((tag: DbTag) => tag.name),
+    }));
+
+    console.log("タグ削除成功:", tagToRemove);
+  } catch (error) {
+    console.error("タグ削除失敗:", error);
+  }
+};
 
   // 各タグの件数を集計する処理
   const tagsCounts = Object.values(localTags).flat().reduce<Record<string, number>>((acc, tag) => {
@@ -478,21 +569,39 @@ useEffect(() => {
                 {quickAddTags.length === 0 ? (
                   <span style={{ color: "#000000" }}>候補はまだありません</span>
                 ) : (
-                  quickAddTags.map((tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => addTag(tagModalFile.id, tag)}
-                      style={{
-                        padding: "6px 10px",
-                        cursor: "pointer",
-                        borderRadius: "4px",
-                        border: "1px solid #bbb",
-                        backgroundColor: "#a2bbea",
-                      }}
-                    >
-                      + {tag}
-                    </button>
-                  ))
+                  quickAddTags.map((tag) => {
+                    const isSelected = selectedAddTags.includes(tag);
+
+                    return (
+                      <button
+                        key={tag}
+                        onClick={() => {
+                          setSelectedAddTags((prev) => {
+                            if (prev.includes(tag)) {
+                              return prev.filter((item) => item !== tag);
+                            }
+
+                            return [...prev, tag];
+                          });
+                        }}
+                        style={{
+                          padding: "6px 10px",
+                          cursor: "pointer",
+                          borderRadius: "4px",
+                          border: isSelected
+                            ? "2px solid #0078d4"
+                            : "1px solid #bbb",
+                          backgroundColor: isSelected
+                            ? "#d9edff"
+                            : "#a2bbea",
+                          fontWeight: isSelected ? "bold" : "normal",
+                        }}
+                      >
+                        {isSelected ? "✓ " : "+ "}
+                        {tag}
+                      </button>
+                    );
+})
                 )}
               </div>
             </div>
@@ -522,13 +631,37 @@ useEffect(() => {
                 </label>
               </div>
               <button
-                onClick={() => {
+                onClick={async () => {
+                  if (!tagModalFile) return;
+
+                  // 既存の候補から選択されたタグ
+                  const tagsToAdd = [...selectedAddTags];
+
+                  // 新しく入力されたタグがあれば追加
                   const trimmedTag = newTagName.trim();
-                  if (!trimmedTag) return;
-                  addTag(tagModalFile.id, trimmedTag);
-                  if (newTagAddToQuickAdd) {
+
+                  if (trimmedTag) {
+                    tagsToAdd.push(trimmedTag);
+                  }
+
+                  // 何も選択・入力されていなければ何もしない
+                  if (tagsToAdd.length === 0) return;
+
+                  // 重複を除去
+                  const uniqueTags = [...new Set(tagsToAdd)];
+
+                  // 選択されたタグを順番にDBへ追加
+                  for (const tag of uniqueTags) {
+                    await addTag(tagModalFile.id, tag);
+                  }
+
+                  // 新しく入力したタグを候補にも追加する
+                  if (trimmedTag && newTagAddToQuickAdd) {
                     addQuickAddTag(trimmedTag);
                   }
+
+                  // 入力・選択状態をリセット
+                  setSelectedAddTags([]);
                   setNewTagName("");
                   setNewTagAddToQuickAdd(false);
                 }}

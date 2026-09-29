@@ -5,7 +5,7 @@ export async function getFiles() {
   const response = await fetch(`${API_URL}/api/files`);
 
   if (!response.ok) {
-    throw new Error("ファイルの取得に失敗しました");
+    throw new Error("ファイル取得失敗");
   }
 
   return await response.json();
@@ -18,7 +18,7 @@ export async function getFileTags(fileId: number) {
   );
 
   if (!response.ok) {
-    throw new Error("タグの取得に失敗しました");
+    throw new Error("タグ取得失敗");
   }
 
   return await response.json();
@@ -40,7 +40,7 @@ export async function addFileTag(fileId: number, tagName: string) {
   );
 
   if (!response.ok) {
-    throw new Error("タグの追加に失敗しました");
+    throw new Error("タグ追加失敗");
   }
 
   return await response.json();
@@ -59,7 +59,31 @@ export async function deleteFileTag(
   );
 
   if (!response.ok) {
-    throw new Error("タグの削除に失敗しました");
+    throw new Error("タグ削除失敗");
+  }
+
+  return await response.json();
+}
+
+export async function addFile(
+  oneDriveId: string,
+  fileName: string,
+  address: string
+) {
+  const response = await fetch(`${API_URL}/api/files`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      oneDriveId,
+      fileName,
+      address,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("ファイル登録失敗");
   }
 
   return await response.json();
