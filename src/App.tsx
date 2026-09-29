@@ -258,19 +258,23 @@ useEffect(() => {
     });
   };
 
-  const tagSearchResults = Object.entries(localTags)
-    .filter(([, fileTags]) => {
-      if (selectedTags.length === 0) return true;
-
-      return selectedTags.every((selectedTag) =>
-        fileTags.some((fileTag) => fileTag.toLowerCase() === selectedTag.toLowerCase()),
-      );
-    })
-    .map(([fileId, fileTags]) => ({
-      id: fileId,
-      name: fileNameMap[fileId] ?? fileId,
-      tags: fileTags,
-    }));
+const tagSearchResults =
+  selectedTags.length === 0
+    ? []
+    : Object.entries(localTags)
+        .filter(([, fileTags]) => {
+          return selectedTags.every((selectedTag) =>
+            fileTags.some(
+              (fileTag) =>
+                fileTag.toLowerCase() === selectedTag.toLowerCase(),
+            ),
+          );
+        })
+        .map(([fileId, fileTags]) => ({
+          id: fileId,
+          name: fileNameMap[fileId] ?? fileId,
+          tags: fileTags,
+        }));
 
   return (
     <div style={{ padding: "20px", textAlign: "left" }}>
