@@ -13,6 +13,38 @@
     "@microsoft/mgt-element": "^4.7.0",
     "@microsoft/mgt-msal2-provider": "^4.7.0",
     "@microsoft/mgt-react": "^4.7.0",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.4",
+    "express": "^5.2.1",
+    "mysql2": "^3.24.4",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.2",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "@vitejs/plugin-react": "^6.0.2",
+    "oxlint": "^1.69.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.0"
+  }
+}
+{
+  "name": "clearfile",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@microsoft/mgt-element": "^4.7.0",
+    "@microsoft/mgt-msal2-provider": "^4.7.0",
+    "@microsoft/mgt-react": "^4.7.0",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
