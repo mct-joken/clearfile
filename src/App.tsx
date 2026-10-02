@@ -762,3 +762,5 @@ const addTag = async (fileId: string, tag: string) => {
     </div>
   );
 }
+
+export default App;
