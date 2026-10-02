@@ -763,4 +763,24 @@ const addTag = async (fileId: string, tag: string) => {
   );
 }
 
+const formatFileLocation = (path: string | undefined) => {
+  if (!path) {
+    return "場所不明";
+  }
+
+  const cleanPath = path
+    .replace(/^\/drive\/root:?/, "")
+    .replace(/^\/+/, "");
+
+  if (!cleanPath) {
+    return "マイ OneDrive";
+  }
+
+  return `マイ OneDrive > ${cleanPath
+    .split("/")
+    .map((folder) => decodeURIComponent(folder))
+    .join(" > ")}`;
+};
+
+
 export default App;
