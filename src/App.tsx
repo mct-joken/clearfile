@@ -42,8 +42,14 @@ function App() {
         }
 
         getFiles()
-          .then((files) => {
+          .then((files: { id: number; onedrive_id: string }[]) => {
             console.log("DBから取得したファイル:", files);
+
+            setDbFileIds(
+              Object.fromEntries(
+                files.map((file) => [file.onedrive_id, file.id]),
+              ),
+            );
           })
           .catch((error) => {
             console.error("DBからのファイル取得に失敗:", error);
