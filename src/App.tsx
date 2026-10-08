@@ -549,8 +549,20 @@ const addTag = async (fileId: string, tag: string) => {
               ) : (
                 <ul style={{ margin: 0, paddingLeft: "20px", textAlign: "left" }}>
                  {tagSearchResults.map((result) => (
-                    <li key={result.id} style={{ marginBottom: "8px" }}>
-                     <span style={{ fontWeight: "bold" }}>{result.name}</span>
+                    <li 
+                      key={result.id} 
+                      style={{ 
+                        display: "grid",
+                        gridTemplateColumns: "240px minmax(0, 1fr) auto",
+                        alignItems: "center",
+                        gap: "8px",
+                        marginBottom: "8px" 
+                      }}>
+                     <span style={{ fontWeight: "bold" }}>
+                        {Array.from(result.name).length > 30
+                          ? `${Array.from(result.name).slice(0, 30).join("")}...`
+                          : result.name}
+                     </span>
                      <span style={{ color: "#666", marginLeft: "8px" }}>
                        {result.tags.map((tag) => `#${tag}`).join(" ")}
                      </span>
@@ -768,25 +780,5 @@ const addTag = async (fileId: string, tag: string) => {
     </div>
   );
 }
-
-const formatFileLocation = (path: string | undefined) => {
-  if (!path) {
-    return "場所不明";
-  }
-
-  const cleanPath = path
-    .replace(/^\/drive\/root:?/, "")
-    .replace(/^\/+/, "");
-
-  if (!cleanPath) {
-    return "マイ OneDrive";
-  }
-
-  return `マイ OneDrive > ${cleanPath
-    .split("/")
-    .map((folder) => decodeURIComponent(folder))
-    .join(" > ")}`;
-};
-
 
 export default App;
