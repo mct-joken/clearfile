@@ -42,13 +42,22 @@ function App() {
         }
 
         getFiles()
-          .then((files: { id: number; onedrive_id: string }[]) => {
+          .then((files: { id: number; onedrive_id: string; address: string | null; }[]) => {
             console.log("DBから取得したファイル:", files);
 
             setDbFileIds(
               Object.fromEntries(
                 files.map((file) => [file.onedrive_id, file.id]),
               ),
+            );
+
+            setFileAddressMap(
+              files.reduce<Record<string, string>>((addresses, file) => {
+                if(typeof file.address === "string" && file.address) {
+                  addresses[file.onedrive_id] = file.address;
+              }
+                return addresses;
+              }, {})
             );
           })
           .catch((error) => {
@@ -75,6 +84,7 @@ function App() {
   const [localTags, setLocalTags] = useState<Record<string, string[]>>({});
   const [tagModalFile, setTagModalFile] = useState<any>(null);
   const [fileNameMap, setFileNameMap] = useState<Record<string, string>>({});
+  const [fileAddressMap, setFileAddressMap] = useState<Record<string, string>>({});
   
   const [microsoftUserId, setMicrosoftUserId] = useState<string | null>(null);
 
@@ -178,6 +188,13 @@ useEffect(() => {
 
       //OneDrive上のファイルURL
     const itemAddress = fileDetails.webUrl;
+
+    if (typeof itemAddress === "string" && itemAddress) {
+      setFileAddressMap((prev) => ({
+        ...prev,
+        [itemId]: itemAddress,
+      }));
+    }
 
     console.log("右クリックしたファイル:", {
       id: itemId,
@@ -548,41 +565,59 @@ const addTag = async (fileId: string, tag: string) => {
                 <div style={{ color: "#666" }}>タグに一致するファイルはありません</div>
               ) : (
                 <ul style={{ margin: 0, paddingLeft: "20px", textAlign: "left" }}>
-                 {tagSearchResults.map((result) => (
-                    <li 
-                      key={result.id} 
-                      style={{ 
-                        display: "grid",
-                        gridTemplateColumns: "240px minmax(0, 1fr) auto",
-                        alignItems: "center",
-                        gap: "8px",
-                        marginBottom: "8px" 
-                      }}>
-                     <span style={{ fontWeight: "bold" }}>
-                        {Array.from(result.name).length > 30
-                          ? `${Array.from(result.name).slice(0, 30).join("")}...`
-                          : result.name}
-                     </span>
-                     <span style={{ color: "#666", marginLeft: "8px" }}>
-                       {result.tags.map((tag) => `#${tag}`).join(" ")}
-                     </span>
-                     <button
-                        onClick={() => {
-                          setTagModalFile({ id: result.id, name: result.name });
-                       }}
+                 {tagSearchResults.map((result) => {
+                    const displayName = Array.from(result.name).length > 30
+                      ? `${Array.from(result.name).slice(0, 30).join("")}...`
+                      : result.name;
+                    const oneDriveUrl = fileAddressMap[result.id];
+
+                    return (
+                      <li
+                        key={result.id}
                         style={{
-                          marginLeft: "8px",
-                         padding: "2px 8px",
-                         cursor: "pointer",
-                         borderRadius: "4px",
-                          border: "1px solid #28a745",
-                          backgroundColor: "#fff",
-                          color: "#28a745",
-                        }}>
-                        タグ編集
-                      </button>
-                    </li>
-                 ))}
+                          display: "grid",
+                          gridTemplateColumns: "240px minmax(0, 1fr) auto",
+                          alignItems: "center",
+                          gap: "8px",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        {oneDriveUrl ? (
+                          <a
+                            href={oneDriveUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontWeight: "bold", color: "#0078d4" }}
+                          >
+                            {displayName}
+                          </a>
+                        ) : (
+                          <span style={{ fontWeight: "bold" }}>{displayName}</span>
+                        )}
+
+                        <span style={{ color: "#666", marginLeft: "8px" }}>
+                          {result.tags.map((tag) => `#${tag}`).join(" ")}
+                        </span>
+
+                        <button
+                          onClick={() => {
+                            setTagModalFile({ id: result.id, name: result.name });
+                          }}
+                          style={{
+                            marginLeft: "8px",
+                            padding: "2px 8px",
+                            cursor: "pointer",
+                            borderRadius: "4px",
+                            border: "1px solid #28a745",
+                            backgroundColor: "#fff",
+                            color: "#28a745",
+                          }}
+                        >
+                          タグ編集
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>
