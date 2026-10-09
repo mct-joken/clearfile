@@ -1,5 +1,5 @@
 import { Providers } from "@microsoft/mgt-element";
-const API_URL = "http://172.21.7.136:3000";
+const API_URL = "http://172.21.6.155:3000";
 
 async function getAccessToken() {
   const provider = Providers.globalProvider;
